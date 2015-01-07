@@ -28,7 +28,7 @@ type Config struct {
 
 func main() {
 	var config Config
-	if _, err := toml.DecodeFile("gomail.cfg", &config); err != nil {
+	if _, err := toml.DecodeFile("goatee.cfg", &config); err != nil {
 		log.Fatalf("Error opening config file: %s", err)
 	}
 
