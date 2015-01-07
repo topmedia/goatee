@@ -1,0 +1,4 @@
+Server = "imap.gmail.com"
+User = "xxx"
+Password = "xxx"
+Destination = "pdfs"
