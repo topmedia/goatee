@@ -49,8 +49,7 @@ func main() {
 	log.Print("Opening INBOX..\n")
 	c.Select("INBOX", true)
 
-	set, _ := imap.NewSeqSet("")
-	set.Add("1:*")
+	set, _ := imap.NewSeqSet("1:*")
 	log.Print("Fetching mails..\n")
 	cmd, err := c.Fetch(set, "BODY[]")
 
@@ -65,14 +64,14 @@ func main() {
 			header := imap.AsBytes(rsp.MessageInfo().Attrs["BODY[]"])
 
 			if msg, _ := mail.ReadMessage(bytes.NewReader(header)); msg != nil {
+				fmt.Println("|--", msg.Header.Get("Subject"))
 				mediaType, params, _ := mime.ParseMediaType(msg.Header.Get("Content-Type"))
 				if strings.HasPrefix(mediaType, "multipart/") {
-					fmt.Println("|--", msg.Header.Get("Subject"))
 					mr := multipart.NewReader(msg.Body, params["boundary"])
 					for {
 						p, err := mr.NextPart()
 						if err == io.EOF {
-							return
+							break
 						} else if err != nil {
 							log.Fatalf("Error parsing part: %s", err)
 						}
