@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/alexcesaro/quotedprintable"
 	"github.com/mxk/go-imap/imap"
 )
 
@@ -46,7 +47,17 @@ func (g *Goatee) Connect() {
 	}
 
 	log.Print("Opening INBOX..\n")
-	g.client.Select("INBOX", true)
+	g.client.Select("INBOX", false)
+}
+
+func (g *Goatee) DecodeSubject(msg *mail.Message) string {
+	s, _, err := quotedprintable.DecodeHeader(msg.Header.Get("Subject"))
+
+	if err != nil {
+		return msg.Header.Get("Subject")
+	} else {
+		return s
+	}
 }
 
 func (g *Goatee) ExtractAttachment(msg *mail.Message, params map[string]string) {
@@ -85,10 +96,15 @@ func (g *Goatee) FetchMails() {
 		log.Fatalf("UIDSearch failed: %s", err)
 	}
 
+	uids := cmd.Data[0].SearchResults()
+	if len(uids) == 0 {
+		log.Fatal("No unread messages found.")
+	}
+
 	log.Print("Fetching mail bodies..\n")
 	set, _ := imap.NewSeqSet("")
-	set.AddNum(cmd.Data[0].SearchResults()...)
-	cmd, err = g.client.Fetch(set, "FLAGS", "BODY[]")
+	set.AddNum(uids...)
+	cmd, err = g.client.Fetch(set, "UID", "FLAGS", "BODY[]")
 
 	if err != nil {
 		log.Fatalf("Fetch failed: %s", err)
@@ -99,9 +115,10 @@ func (g *Goatee) FetchMails() {
 
 		for _, rsp := range cmd.Data {
 			body := imap.AsBytes(rsp.MessageInfo().Attrs["BODY[]"])
+			log.Printf("UID: %v", rsp.MessageInfo().Attrs["UID"])
 
 			if msg, _ := mail.ReadMessage(bytes.NewReader(body)); msg != nil {
-				fmt.Println("|--", msg.Header.Get("Subject"))
+				fmt.Println("|--", g.DecodeSubject(msg))
 				mediaType, params, _ := mime.ParseMediaType(
 					msg.Header.Get("Content-Type"))
 				if strings.HasPrefix(mediaType, "multipart/") {
@@ -119,6 +136,16 @@ func (g *Goatee) FetchMails() {
 			log.Fatalf("Fetch error:", rsp.Info)
 		}
 	}
+
+	log.Print("Marking messages seen..\n")
+	cmd, err = g.client.UIDStore(set, "+FLAGS.SILENT",
+		imap.NewFlagSet(`\Seen`))
+
+	if rsp, err := cmd.Result(imap.OK); err != nil {
+		log.Fatalf("UIDStore error:", rsp.Info)
+	}
+
+	cmd.Data = nil
 }
 
 func (g *Goatee) ReadConfig(filename string) {
