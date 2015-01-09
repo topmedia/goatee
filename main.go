@@ -77,9 +77,18 @@ func (g *Goatee) ExtractAttachment(msg *mail.Message, params map[string]string) 
 }
 
 func (g *Goatee) FetchMails() {
-	set, _ := imap.NewSeqSet("1:*")
-	log.Print("Fetching mails..\n")
-	cmd, err := g.client.Fetch(set, "BODY[]")
+	log.Print("Fetching unread UIDs..\n")
+	cmd, err := g.client.UIDSearch("1:* NOT SEEN")
+	cmd.Result(imap.OK)
+
+	if err != nil {
+		log.Fatalf("UIDSearch failed: %s", err)
+	}
+
+	log.Print("Fetching mail bodies..\n")
+	set, _ := imap.NewSeqSet("")
+	set.AddNum(cmd.Data[0].SearchResults()...)
+	cmd, err = g.client.Fetch(set, "FLAGS", "BODY[]")
 
 	if err != nil {
 		log.Fatalf("Fetch failed: %s", err)
