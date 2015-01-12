@@ -23,6 +23,4 @@ Destination = "pdfs"
 
 * Only works with IMAPS
 * Only works with PDF attachments
-* There is no concept of remembering which mails have been
-  processed (yet)
-* It needs more error checking
+* Destination directory is relative to the working directory
