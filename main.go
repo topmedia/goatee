@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"log"
 	"mime"
@@ -60,8 +59,8 @@ func (g *Goatee) DecodeSubject(msg *mail.Message) string {
 	}
 }
 
-func (g *Goatee) ExtractAttachment(msg *mail.Message, params map[string]string) {
-	mr := multipart.NewReader(msg.Body, params["boundary"])
+func (g *Goatee) ExtractAttachment(r io.Reader, params map[string]string) {
+	mr := multipart.NewReader(r, params["boundary"])
 	for {
 		p, err := mr.NextPart()
 		if err == io.EOF {
@@ -70,8 +69,12 @@ func (g *Goatee) ExtractAttachment(msg *mail.Message, params map[string]string) 
 			log.Fatalf("Error parsing part: %s", err)
 		}
 
-		ct := p.Header.Get("Content-Type")
-		if strings.HasPrefix(ct, "application/pdf") {
+		ct, params, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
+
+		if strings.HasPrefix(ct, "multipart/mixed") {
+			log.Printf("Extracting attachments from %s", ct)
+			g.ExtractAttachment(p, params)
+		} else if strings.HasPrefix(ct, "application/pdf") {
 			path := filepath.Join(".", g.config.Destination,
 				p.FileName())
 			dst, err := os.Create(path)
@@ -115,14 +118,14 @@ func (g *Goatee) FetchMails() {
 
 		for _, rsp := range cmd.Data {
 			body := imap.AsBytes(rsp.MessageInfo().Attrs["BODY[]"])
-			log.Printf("UID: %v", rsp.MessageInfo().Attrs["UID"])
 
 			if msg, _ := mail.ReadMessage(bytes.NewReader(body)); msg != nil {
-				fmt.Println("|--", g.DecodeSubject(msg))
+				log.Printf("|-- %v", g.DecodeSubject(msg))
 				mediaType, params, _ := mime.ParseMediaType(
 					msg.Header.Get("Content-Type"))
 				if strings.HasPrefix(mediaType, "multipart/") {
-					g.ExtractAttachment(msg, params)
+					log.Printf("Extracting attachments from %s", mediaType)
+					g.ExtractAttachment(msg.Body, params)
 				}
 			}
 		}
