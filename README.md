@@ -5,6 +5,7 @@ Fetch PDF email attachments via IMAP
 ## Building and running
 
 ~~~~~
+go get
 go build
 ./goatee
 ~~~~~
