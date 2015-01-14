@@ -116,7 +116,7 @@ func (g *Goatee) FetchMails() {
 	log.Print("Fetching mail bodies..\n")
 	set, _ := imap.NewSeqSet("")
 	set.AddNum(uids...)
-	cmd, err = g.client.Fetch(set, "UID", "FLAGS", "BODY[]")
+	cmd, err = g.client.UIDFetch(set, "UID", "FLAGS", "BODY[]")
 
 	if err != nil {
 		log.Fatalf("Fetch failed: %s", err)
