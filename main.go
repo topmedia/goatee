@@ -24,7 +24,8 @@ var wd, _ = os.Getwd()
 var conf = flag.String("conf", wd+"/goatee.cfg", "Path to config file.")
 var logfile = flag.String("log", wd+"/goatee.log", "Path to log file.")
 var interval = flag.String("interval", "5m", "Time between each check. Examples: 10s, 5m, 1h")
-var debug = flag.Bool("debug", false, "Log all IMAP commands and responses")
+var debug = flag.Bool("debug", false, "Log all IMAP commands and responses.")
+var once = flag.Bool("once", false, "Only execute the fetch once and exit.")
 
 type Config struct {
 	Server      string
@@ -203,8 +204,13 @@ func main() {
 		g.Connect()
 		g.FetchMails()
 		g.client.Logout(1 * time.Second)
-		t, _ := time.ParseDuration(*interval)
-		log.Printf("Sleeping for %v", t)
-		time.Sleep(t)
+
+		if *once {
+			os.Exit(0)
+		} else {
+			t, _ := time.ParseDuration(*interval)
+			log.Printf("Sleeping for %v", t)
+			time.Sleep(t)
+		}
 	}
 }
