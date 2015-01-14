@@ -81,7 +81,7 @@ func (g *Goatee) ExtractAttachment(r io.Reader, params map[string]string) {
 		if strings.HasPrefix(ct, "multipart/mixed") {
 			log.Printf("Extracting attachments from %s", ct)
 			g.ExtractAttachment(p, params)
-		} else if strings.HasPrefix(ct, "application/pdf") {
+		} else if g.HasPDF(ct, p) {
 			path := filepath.Join(wd, g.config.Destination,
 				p.FileName())
 			dst, err := os.Create(path)
@@ -157,6 +157,16 @@ func (g *Goatee) FetchMails() {
 	}
 
 	cmd.Data = nil
+}
+
+func (g *Goatee) HasPDF(contentType string, part *multipart.Part) bool {
+	if strings.HasPrefix(contentType, "application/pdf") {
+		return true
+	} else if strings.HasPrefix(contentType, "application/octet-stream") &&
+		strings.HasSuffix(strings.ToLower(part.FileName()), ".pdf") {
+		return true
+	}
+	return false
 }
 
 func (g *Goatee) OpenLog(path string) {
