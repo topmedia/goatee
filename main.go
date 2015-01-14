@@ -140,7 +140,7 @@ func (g *Goatee) FetchMails() {
 		if err == imap.ErrAborted {
 			log.Fatal("Fetch command aborted")
 		} else {
-			log.Fatalf("Fetch error:", rsp.Info)
+			log.Fatalf("Fetch error: %v", rsp.Info)
 		}
 	}
 
@@ -149,7 +149,7 @@ func (g *Goatee) FetchMails() {
 		imap.NewFlagSet(`\Seen`))
 
 	if rsp, err := cmd.Result(imap.OK); err != nil {
-		log.Fatalf("UIDStore error:", rsp.Info)
+		log.Fatalf("UIDStore error:%v", rsp.Info)
 	}
 
 	cmd.Data = nil
