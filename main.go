@@ -22,6 +22,7 @@ import (
 
 var wd, _ = os.Getwd()
 var conf = flag.String("conf", wd+"/goatee.cfg", "Path to config file.")
+var logfile = flag.String("log", wd+"/goatee.log", "Path to log file.")
 type Config struct {
 	Server      string
 	User        string
@@ -154,6 +155,14 @@ func (g *Goatee) FetchMails() {
 	cmd.Data = nil
 }
 
+func (g *Goatee) OpenLog(path string) {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Error opening logfile: %v", err)
+	}
+	log.SetOutput(io.MultiWriter(os.Stderr, f))
+}
+
 func (g *Goatee) ReadConfig(path string) {
 	if _, err := os.Stat(path); err != nil {
 		log.Fatalf("File doesn't exist: %v", err)
@@ -171,4 +180,5 @@ func main() {
 	defer g.client.Logout(30 * time.Second)
 	g.FetchMails()
 	g.ReadConfig(*conf)
+	g.OpenLog(*logfile)
 }
