@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
+	"flag"
 	"io"
 	"log"
 	"mime"
@@ -19,6 +20,8 @@ import (
 	"github.com/mxk/go-imap/imap"
 )
 
+var wd, _ = os.Getwd()
+var conf = flag.String("conf", wd+"/goatee.cfg", "Path to config file.")
 type Config struct {
 	Server      string
 	User        string
@@ -75,7 +78,7 @@ func (g *Goatee) ExtractAttachment(r io.Reader, params map[string]string) {
 			log.Printf("Extracting attachments from %s", ct)
 			g.ExtractAttachment(p, params)
 		} else if strings.HasPrefix(ct, "application/pdf") {
-			path := filepath.Join(".", g.config.Destination,
+			path := filepath.Join(wd, g.config.Destination,
 				p.FileName())
 			dst, err := os.Create(path)
 			if err != nil {
@@ -151,16 +154,21 @@ func (g *Goatee) FetchMails() {
 	cmd.Data = nil
 }
 
-func (g *Goatee) ReadConfig(filename string) {
-	if _, err := toml.DecodeFile(filename, &g.config); err != nil {
+func (g *Goatee) ReadConfig(path string) {
+	if _, err := os.Stat(path); err != nil {
+		log.Fatalf("File doesn't exist: %v", err)
+	}
+
+	if _, err := toml.DecodeFile(path, &g.config); err != nil {
 		log.Fatalf("Error opening config file: %s", err)
 	}
 }
 
 func main() {
+	flag.Parse()
 	g := Goatee{}
-	g.ReadConfig("goatee.cfg")
 	g.Connect()
 	defer g.client.Logout(30 * time.Second)
 	g.FetchMails()
+	g.ReadConfig(*conf)
 }
