@@ -24,6 +24,7 @@ var wd, _ = os.Getwd()
 var conf = flag.String("conf", wd+"/goatee.cfg", "Path to config file.")
 var logfile = flag.String("log", wd+"/goatee.log", "Path to log file.")
 var interval = flag.String("interval", "5m", "Time between each check. Examples: 10s, 5m, 1h")
+var debug = flag.Bool("debug", false, "Log all IMAP commands and responses")
 
 type Config struct {
 	Server      string
@@ -178,6 +179,12 @@ func (g *Goatee) ReadConfig(path string) {
 
 func main() {
 	flag.Parse()
+
+	if *debug {
+		imap.DefaultLogger = log.New(os.Stdout, "", 0)
+		imap.DefaultLogMask = imap.LogConn | imap.LogRaw
+	}
+
 	g := Goatee{}
 	g.ReadConfig(*conf)
 	g.OpenLog(*logfile)
