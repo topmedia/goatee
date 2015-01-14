@@ -23,6 +23,8 @@ import (
 var wd, _ = os.Getwd()
 var conf = flag.String("conf", wd+"/goatee.cfg", "Path to config file.")
 var logfile = flag.String("log", wd+"/goatee.log", "Path to log file.")
+var interval = flag.String("interval", "5m", "Time between each check. Examples: 10s, 5m, 1h")
+
 type Config struct {
 	Server      string
 	User        string
@@ -105,7 +107,8 @@ func (g *Goatee) FetchMails() {
 
 	uids := cmd.Data[0].SearchResults()
 	if len(uids) == 0 {
-		log.Fatal("No unread messages found.")
+		log.Print("No unread messages found.")
+		return
 	}
 
 	log.Print("Fetching mail bodies..\n")
@@ -176,9 +179,15 @@ func (g *Goatee) ReadConfig(path string) {
 func main() {
 	flag.Parse()
 	g := Goatee{}
-	g.Connect()
-	defer g.client.Logout(30 * time.Second)
-	g.FetchMails()
 	g.ReadConfig(*conf)
 	g.OpenLog(*logfile)
+
+	for {
+		g.Connect()
+		g.FetchMails()
+		g.client.Logout(1 * time.Second)
+		t, _ := time.ParseDuration(*interval)
+		log.Printf("Sleeping for %v", t)
+		time.Sleep(t)
+	}
 }
