@@ -12,6 +12,7 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -83,8 +84,10 @@ func (g *Goatee) ExtractAttachment(r io.Reader, params map[string]string) {
 			log.Printf("Extracting attachments from %s", ct)
 			g.ExtractAttachment(p, params)
 		} else if g.HasPDF(ct, p) {
-			path := filepath.Join(wd, g.config.Destination,
-				p.FileName())
+			re := regexp.MustCompile(`[^\w\.]`)
+			df := re.ReplaceAllString(p.FileName(), "_")
+
+			path := filepath.Join(wd, g.config.Destination, df)
 			dst, err := os.Create(path)
 			if err != nil {
 				log.Fatalf("Failed to create file: %s", err)
